@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decimal Place Value Challenge - Multiplayer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #FF6B35;
+            --secondary: #F7931E;
+            --accent: #FDC500;
+            --purple: #9B59B6;
+            --blue: #3498DB;
+            --green: #2ECC71;
+            --teal: #1ABC9C;
+            --bg: #FFF8F0;
+            --dark: #2C3E50;
+            --p1: #e05c3a;
+            --p2: #3a6ee0;
+        }
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #FFF8F0 0%, #FFE5D9 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--dark);
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+
+        h1 {
+            font-family: 'Baloo 2', cursive;
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 6px;
+            background: linear-gradient(135deg, var(--primary), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: titleBounce 2s ease-in-out infinite;
+        }
+        @keyframes titleBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .subtitle { text-align: center; font-size: 1.1rem; color: var(--primary); margin-bottom: 24px; font-weight: 600; }
+
+        /* ── LOBBY ── */
+        .lobby-card {
+            background: white;
+            border-radius: 20px;
+            padding: 36px;
+            max-width: 480px;
+            margin: 0 auto 30px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            border: 4px solid var(--accent);
+        }
+        .lobby-card h2 { font-family: 'Baloo 2', cursive; color: var(--purple); font-size: 1.8rem; margin-bottom: 20px; text-align: center; }
+        .field-label { font-size: 0.85rem; font-weight: 600; color: var(--purple); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        input[type=text] {
+            width: 100%; padding: 12px 16px; border-radius: 12px;
+            border: 3px solid var(--accent); font-family: 'Fredoka', sans-serif;
+            font-size: 1rem; font-weight: 600; outline: none; margin-bottom: 14px;
+            transition: border 0.2s; text-transform: uppercase; letter-spacing: 2px;
+            color: var(--dark);
+        }
+        input[type=text].name-input { text-transform: none; letter-spacing: 0; }
+        input[type=text]:focus { border-color: var(--primary); }
+        .btn {
+            font-family: 'Baloo 2', cursive;
+            font-size: 1.2rem; padding: 13px 28px;
+            border: none; border-radius: 50px; cursor: pointer;
+            transition: all 0.2s; font-weight: 700; width: 100%; margin-bottom: 10px;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: linear-gradient(135deg, var(--purple), #8E44AD); color: white; box-shadow: 0 5px 20px rgba(155,89,182,0.4); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(155,89,182,0.5); }
+        .btn-orange { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; box-shadow: 0 5px 20px rgba(255,107,53,0.4); }
+        .btn-orange:hover { transform: translateY(-2px); }
+        .btn-dark { background: var(--dark); color: white; }
+        .btn-dark:hover { background: #34495E; transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+        .divider { text-align: center; color: #aaa; margin: 10px 0; font-size: 0.9rem; }
+
+        .room-box {
+            background: #f8f0ff; border-radius: 14px; padding: 16px;
+            text-align: center; margin-bottom: 16px; border: 2px dashed var(--purple);
+        }
+        .room-box .rlabel { font-size: 0.8rem; color: var(--purple); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .room-box .rcode { font-family: 'Baloo 2', cursive; font-size: 2.4rem; color: var(--primary); letter-spacing: 6px; }
+
+        .lobby-msg { text-align: center; font-size: 0.9rem; margin-top: 8px; min-height: 20px; color: #e74c3c; font-weight: 600; }
+        .lobby-msg.ok { color: var(--green); }
+
+        /* ── GAME ── */
+        #screen-game { display: none; }
+        #screen-lobby { display: block; }
+
+        .status-bar {
+            display: flex; gap: 12px; align-items: stretch;
+            margin-bottom: 20px; flex-wrap: wrap;
+        }
+        .player-chip {
+            flex: 1; min-width: 140px;
+            padding: 12px 16px; border-radius: 16px;
+            border: 3px solid #ddd; background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+        }
+        .player-chip.p1 { border-color: var(--p1); }
+        .player-chip.p2 { border-color: var(--p2); }
+        .player-chip.active { transform: scale(1.03); box-shadow: 0 6px 20px rgba(253,197,0,0.5); border-color: var(--accent) !important; }
+        .chip-name { font-family: 'Baloo 2', cursive; font-size: 1.1rem; font-weight: 700; }
+        .chip-name.p1 { color: var(--p1); }
+        .chip-name.p2 { color: var(--p2); }
+        .chip-score { font-size: 0.82rem; color: #888; font-weight: 600; margin-top: 2px; }
+        .chip-number { font-family: 'Baloo 2', cursive; font-size: 1.3rem; color: var(--dark); margin-top: 4px; }
+
+        .turn-card {
+            flex: 1.2; min-width: 180px;
+            background: white; border-radius: 16px; padding: 12px 16px;
+            border: 3px solid var(--accent);
+            text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .turn-label { font-size: 0.78rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .turn-name { font-family: 'Baloo 2', cursive; font-size: 1.3rem; color: var(--purple); margin-top: 2px; }
+        .room-label { font-size: 0.78rem; color: #bbb; margin-top: 4px; }
+        .room-code-inline { font-family: 'Baloo 2', cursive; color: var(--primary); letter-spacing: 3px; }
+
+        .waiting-pulse {
+            display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+            background: var(--accent); animation: pulse 1.2s infinite;
+            margin-right: 5px; vertical-align: middle;
+        }
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+
+        /* dice area */
+        .dice-area {
+            background: white; padding: 30px; border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            text-align: center; margin-bottom: 24px;
+            border: 4px solid var(--blue);
+        }
+        .dice {
+            width: 120px; height: 120px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 20px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-family: 'Baloo 2', cursive; font-size: 4.5rem; color: white;
+            margin: 16px auto;
+            box-shadow: 0 10px 30px rgba(255,107,53,0.4);
+            transition: all 0.3s;
+        }
+        .dice.rolling { animation: rollDice 0.6s ease-in-out; }
+        @keyframes rollDice {
+            0%,100%{transform:rotate(0deg) scale(1)}
+            25%{transform:rotate(90deg) scale(1.1)}
+            50%{transform:rotate(180deg) scale(0.9)}
+            75%{transform:rotate(270deg) scale(1.1)}
+        }
+        .roll-button {
+            font-family: 'Baloo 2', cursive; font-size: 1.6rem;
+            padding: 14px 44px;
+            background: linear-gradient(135deg, var(--purple), #8E44AD);
+            color: white; border: none; border-radius: 50px; cursor: pointer;
+            transition: all 0.3s; box-shadow: 0 5px 20px rgba(155,89,182,0.4);
+        }
+        .roll-button:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(155,89,182,0.5); }
+        .roll-button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .rolls-remaining {
+            background: var(--blue); color: white; padding: 10px 22px;
+            border-radius: 50px; display: inline-block; margin-bottom: 14px;
+            font-weight: 600; font-size: 1rem;
+        }
+        .instruction { font-size: 1.2rem; margin-bottom: 14px; color: var(--purple); font-weight: 600; }
+
+        /* place value chart */
+        .player-section {
+            background: white; padding: 28px; border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            position: relative; overflow: hidden; margin-bottom: 20px;
+        }
+        .player-section::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+        }
+        .section-title {
+            font-family: 'Baloo 2', cursive; font-size: 1.2rem;
+            margin-bottom: 14px; padding-top: 4px;
+        }
+        .section-title.p1 { color: var(--p1); }
+        .section-title.p2 { color: var(--p2); }
+
+        .place-value-chart {
+            display: grid; grid-template-columns: repeat(10, 1fr);
+            gap: 6px; margin-bottom: 16px;
+        }
+        .place-column { text-align: center; }
+        .place-label {
+            font-size: 0.65rem; font-weight: 600; margin-bottom: 5px;
+            color: var(--purple); text-transform: uppercase; letter-spacing: 0.3px;
+            line-height: 1.2; min-height: 30px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .place-value {
+            background: linear-gradient(135deg, #FFF, #F8F8F8);
+            border: 3px solid var(--accent); border-radius: 12px;
+            height: 80px; display: flex; align-items: center; justify-content: center;
+            font-size: 2.4rem; font-family: 'Baloo 2', cursive; font-weight: 800;
+            cursor: pointer; transition: all 0.3s; position: relative;
+        }
+        .place-value:hover { transform: scale(1.05); border-color: var(--primary); box-shadow: 0 5px 16px rgba(255,107,53,0.3); }
+        .place-value.filled-p1 { background: linear-gradient(135deg, #e05c3a, #c0442a); color: white; border-color: #e05c3a; animation: fillPop 0.4s ease; }
+        .place-value.filled-p2 { background: linear-gradient(135deg, #3a6ee0, #2a55c0); color: white; border-color: #3a6ee0; animation: fillPop 0.4s ease; }
+        .place-value.decimal-point {
+            background: linear-gradient(135deg, var(--teal), #16A085);
+            color: white; border-color: var(--teal); cursor: default; font-size: 3.5rem;
+        }
+        .place-value.decimal-point:hover { transform: none; box-shadow: none; }
+        .place-value.not-my-turn { cursor: not-allowed; opacity: 0.7; }
+        @keyframes fillPop {
+            0%{transform:scale(0.8)} 50%{transform:scale(1.1)} 100%{transform:scale(1)}
+        }
+
+        .total-display {
+            background: linear-gradient(135deg, var(--secondary), var(--accent));
+            padding: 18px; border-radius: 14px; text-align: center;
+        }
+        .total-label { font-size: 1rem; color: white; font-weight: 600; margin-bottom: 4px; }
+        .total-value { font-family: 'Baloo 2', cursive; font-size: 2.4rem; color: white; font-weight: 800; }
+
+        .section-divider {
+            text-align: center; margin: 10px 0; font-size: 0.82rem;
+            color: var(--purple); font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        /* winner */
+        .winner-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 200;
+            display: none; align-items: center; justify-content: center;
+            animation: fadein 0.4s;
+        }
+        .winner-overlay.show { display: flex; }
+        @keyframes fadein { from{opacity:0} to{opacity:1} }
+        .winner-card {
+            background: white; border-radius: 24px; padding: 40px 44px;
+            text-align: center; max-width: 420px; width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border: 4px solid var(--accent);
+        }
+        .winner-card .trophy { font-size: 4rem; margin-bottom: 10px; }
+        .winner-card h2 { font-family: 'Baloo 2', cursive; font-size: 2rem; color: var(--purple); margin-bottom: 8px; }
+        .winner-card p { color: #888; margin-bottom: 20px; font-size: 0.95rem; }
+        .winner-scores { display: flex; gap: 14px; justify-content: center; margin-bottom: 24px; }
+        .ws { padding: 14px 20px; border-radius: 14px; font-family: 'Baloo 2', cursive; font-size: 1.1rem; flex: 1; }
+        .ws.p1 { background: rgba(224,92,58,0.12); border: 3px solid var(--p1); color: var(--p1); }
+        .ws.p2 { background: rgba(58,110,224,0.12); border: 3px solid var(--p2); color: var(--p2); }
+        .ws .ws-num { font-size: 1.5rem; display: block; }
+
+        .action-row { display: flex; gap: 10px; margin-top: 10px; }
+        .btn-sm { font-size: 1rem; padding: 10px 18px; margin-bottom: 0; }
+
+        .game-msg { text-align: center; font-size: 0.9rem; min-height: 20px; color: var(--purple); font-weight: 600; margin-top: 8px; }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            .place-value-chart { grid-template-columns: repeat(5, 1fr); }
+            .place-value { height: 60px; font-size: 1.8rem; }
+            .place-label { font-size: 0.6rem; }
+            .status-bar { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🎲 Decimal Place Value Challenge 🎲</h1>
+    <p class="subtitle">Multiplayer — build the biggest number to win!</p>
+
+    <!-- LOBBY -->
+    <div id="screen-lobby">
+        <div class="lobby-card">
+            <h2>Play Online</h2>
+
+            <div class="field-label">Your name</div>
+            <input type="text" id="playerName" class="name-input" placeholder="Enter your name" maxlength="16">
+
+            <button class="btn btn-primary" onclick="createGame()">🎲 Create New Game</button>
+
+            <div class="divider">— or join with a room code —</div>
+
+            <div class="field-label">Room code</div>
+            <input type="text" id="joinCode" placeholder="ABCD" maxlength="4">
+            <button class="btn btn-orange" onclick="joinGame()">Join Game →</button>
+
+            <div class="lobby-msg" id="lobby-msg"></div>
+        </div>
+        <p style="text-align:center;color:#aaa;font-size:0.82rem;">No account needed · Share your room code with a friend</p>
+    </div>
+
+    <!-- GAME -->
+    <div id="screen-game">
+        <div class="status-bar">
+            <div class="player-chip p1" id="chip-p1">
+                <div class="chip-name p1" id="chip-p1-name">Player 1</div>
+                <div class="chip-score">Your number:</div>
+                <div class="chip-number" id="chip-p1-number">—</div>
+            </div>
+            <div class="turn-card">
+                <div class="turn-label">Current turn</div>
+                <div class="turn-name" id="turn-name">—</div>
+                <div class="room-label">Room: <span class="room-code-inline" id="room-display-game"></span></div>
+            </div>
+            <div class="player-chip p2" id="chip-p2">
+                <div class="chip-name p2" id="chip-p2-name">Player 2</div>
+                <div class="chip-score">Their number:</div>
+                <div class="chip-number" id="chip-p2-number">—</div>
+            </div>
+        </div>
+
+        <!-- Dice -->
+        <div class="dice-area">
+            <div class="rolls-remaining" id="rollsRemaining">Rolls Remaining: 9</div>
+            <div class="instruction" id="instruction">Waiting for game to start…</div>
+            <div class="dice" id="dice">?</div>
+            <button class="roll-button" id="rollButton" onclick="doRoll()" disabled>Roll the Die!</button>
+            <div class="action-row" style="justify-content:center;margin-top:12px;">
+                <button class="btn btn-dark btn-sm" style="width:auto;" onclick="copyCode()">📋 Copy Room Code</button>
+                <button class="btn btn-sm" style="width:auto;background:#e74c3c;color:white;" onclick="leaveGame()">Leave</button>
+            </div>
+            <div class="game-msg" id="game-msg"></div>
+        </div>
+
+        <!-- Player 1 chart -->
+        <div class="player-section" id="section-p1">
+            <div class="section-title p1" id="title-p1">🔴 Player 1's Board</div>
+            <div class="section-divider">⬅️ WHOLE NUMBERS · DECIMAL PLACES ➡️</div>
+            <div class="place-value-chart" id="chart-p1">
+                <div class="place-column"><div class="place-label">Hundred Thousands</div><div class="place-value" data-place="5" data-player="p1"></div></div>
+                <div class="place-column"><div class="place-label">Ten Thousands</div><div class="place-value" data-place="4" data-player="p1"></div></div>
+                <div class="place-column"><div class="place-label">Thousands</div><div class="place-value" data-place="3" data-player="p1"></div></div>
+                <div class="place-column"><div class="place-label">Hundreds</div><div class="place-value" data-place="2" data-player="p1"></div></div>
+                <div class="place-column"><div class="place-label">Tens</div><div class="place-value" data-place="1" data-player="p1"></div></div>
+                <div class="place-column"><div class="place-label">Ones</div><div class="place-value" data-place="0" data-player="p1"></div></div>
+                <div class="place-column"><div class="place-label">Decimal Point</div><div class="place-value decimal-point">.</div></div>
+                <div class="place-column"><div class="place-label">Tenths</div><div class="place-value" data-place="-1" data-player="p1"></div></div>
+                <div class="place-column"><div class="place-label">Hundredths</div><div class="place-value" data-place="-2" data-player="p1"></div></div>
+                <div class="place-column"><div class="place-label">Thousandths</div><div class="place-value" data-place="-3" data-player="p1"></div></div>
+            </div>
+            <div class="total-display">
+                <div class="total-label">Player 1's Number</div>
+                <div class="total-value" id="total-p1">0.000</div>
+            </div>
+        </div>
+
+        <!-- Player 2 chart -->
+        <div class="player-section" id="section-p2">
+            <div class="section-title p2" id="title-p2">🔵 Player 2's Board</div>
+            <div class="section-divider">⬅️ WHOLE NUMBERS · DECIMAL PLACES ➡️</div>
+            <div class="place-value-chart" id="chart-p2">
+                <div class="place-column"><div class="place-label">Hundred Thousands</div><div class="place-value" data-place="5" data-player="p2"></div></div>
+                <div class="place-column"><div class="place-label">Ten Thousands</div><div class="place-value" data-place="4" data-player="p2"></div></div>
+                <div class="place-column"><div class="place-label">Thousands</div><div class="place-value" data-place="3" data-player="p2"></div></div>
+                <div class="place-column"><div class="place-label">Hundreds</div><div class="place-value" data-place="2" data-player="p2"></div></div>
+                <div class="place-column"><div class="place-label">Tens</div><div class="place-value" data-place="1" data-player="p2"></div></div>
+                <div class="place-column"><div class="place-label">Ones</div><div class="place-value" data-place="0" data-player="p2"></div></div>
+                <div class="place-column"><div class="place-label">Decimal Point</div><div class="place-value decimal-point">.</div></div>
+                <div class="place-column"><div class="place-label">Tenths</div><div class="place-value" data-place="-1" data-player="p2"></div></div>
+                <div class="place-column"><div class="place-label">Hundredths</div><div class="place-value" data-place="-2" data-player="p2"></div></div>
+                <div class="place-column"><div class="place-label">Thousandths</div><div class="place-value" data-place="-3" data-player="p2"></div></div>
+            </div>
+            <div class="total-display">
+                <div class="total-label">Player 2's Number</div>
+                <div class="total-value" id="total-p2">0.000</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Winner overlay -->
+<div class="winner-overlay" id="winner-overlay">
+    <div class="winner-card">
+        <div class="trophy">🏆</div>
+        <h2 id="winner-title">Player 1 wins!</h2>
+        <p id="winner-sub">They built the biggest number!</p>
+        <div class="winner-scores">
+            <div class="ws p1">
+                <span id="ws-p1-name">P1</span>
+                <span class="ws-num" id="ws-p1-num">—</span>
+            </div>
+            <div class="ws p2">
+                <span id="ws-p2-name">P2</span>
+                <span class="ws-num" id="ws-p2-num">—</span>
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="backToLobby()">🔄 Play Again</button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js"></script>
+<script>
+// ── REPLACE THIS WITH YOUR FIREBASE CONFIG ──
+const firebaseConfig = {
+    apiKey: "AIzaSyCecKina90omoqiY13SSpSWLE-tYD3CNuI",
+  authDomain: "decimal-challenge.firebaseapp.com",
+  databaseURL: "https://decimal-challenge-default-rtdb.firebaseio.com",
+  projectId: "decimal-challenge",
+  storageBucket: "decimal-challenge.firebasestorage.app",
+  messagingSenderId: "32535526137",
+  appId: "1:32535526137:web:4fa521825666d51c578028"
+};
+// ────────────────────────────────────────────
+
+let db, unsubscribe;
+let myRole = null; // 'p1' or 'p2'
+let myName = '';
+let currentRoom = '';
+let gameState = null;
+let pendingRoll = null; // roll waiting to be placed
+
+const PLACES = ['5','4','3','2','1','0','-1','-2','-3'];
+
+function emptyValues() {
+    const v = {};
+    PLACES.forEach(p => v[p] = null);
+    return v;
+}
+
+function buildInitialState(p1name) {
+    return {
+        phase: 'waiting', // waiting | playing | done
+        turn: 'p1',
+        p1name,
+        p2name: '',
+        p1values: emptyValues(),
+        p2values: emptyValues(),
+        p1rolls: 0,
+        p2rolls: 0,
+        currentRoll: null,
+        rollOwner: null // who rolled the pending roll
+    };
+}
+
+// ── Firebase init ──
+function initFB() {
+    if (window._fbReady) return;
+    window._fbReady = true;
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+}
+
+function genCode() {
+    return Array.from({length:4}, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
+}
+
+function showLobbyMsg(txt, ok) {
+    const el = document.getElementById('lobby-msg');
+    el.textContent = txt;
+    el.className = 'lobby-msg' + (ok ? ' ok' : '');
+}
+function showGameMsg(txt) {
+    document.getElementById('game-msg').textContent = txt;
+}
+
+// ── Create ──
+async function createGame() {
+    const name = document.getElementById('playerName').value.trim() || 'Player 1';
+    myName = name; myRole = 'p1';
+    initFB();
+    const code = genCode();
+    currentRoom = code;
+    try {
+        await db.ref('dpv/' + code).set(buildInitialState(name));
+        enterGame(code);
+        listenRoom(code);
+        showGameMsg('⌛ Share your room code with Player 2 and wait for them to join!');
+    } catch(e) {
+        showLobbyMsg('Connection failed. Check your Firebase config.', false);
+    }
+}
+
+// ── Join ──
+async function joinGame() {
+    const name = document.getElementById('playerName').value.trim() || 'Player 2';
+    const code = document.getElementById('joinCode').value.trim().toUpperCase();
+    if (code.length !== 4) { showLobbyMsg('Enter a 4-letter room code', false); return; }
+    myName = name; myRole = 'p2'; currentRoom = code;
+    initFB();
+    const snap = await db.ref('dpv/' + code).once('value');
+    if (!snap.exists()) { showLobbyMsg('Room not found!', false); return; }
+    const s = snap.val();
+    if (s.phase !== 'waiting') { showLobbyMsg('That game already started.', false); return; }
+    await db.ref('dpv/' + code).update({ p2name: name, phase: 'playing' });
+    enterGame(code);
+    listenRoom(code);
+}
+
+// ── Enter game screen ──
+function enterGame(code) {
+    document.getElementById('screen-lobby').style.display = 'none';
+    document.getElementById('screen-game').style.display = 'block';
+    document.getElementById('room-display-game').textContent = code;
+}
+
+// ── Listen ──
+function listenRoom(code) {
+    if (unsubscribe) unsubscribe();
+    const ref = db.ref('dpv/' + code);
+    const cb = ref.on('value', snap => {
+        if (!snap.exists()) return;
+        applyState(snap.val());
+    });
+    unsubscribe = () => ref.off('value', cb);
+}
+
+// ── Apply state ──
+function applyState(s) {
+    gameState = s;
+
+    // Names
+    document.getElementById('chip-p1-name').textContent = '🔴 ' + (s.p1name || 'Player 1');
+    document.getElementById('chip-p2-name').textContent = '🔵 ' + (s.p2name || 'Waiting…');
+    document.getElementById('title-p1').textContent = '🔴 ' + (s.p1name || 'Player 1') + "'s Board";
+    document.getElementById('title-p2').textContent = '🔵 ' + (s.p2name || 'Player 2') + "'s Board";
+
+    // Active chip highlight
+    document.getElementById('chip-p1').classList.toggle('active', s.turn === 'p1' && s.phase === 'playing');
+    document.getElementById('chip-p2').classList.toggle('active', s.turn === 'p2' && s.phase === 'playing');
+
+    // Turn banner
+    const isMyTurn = (myRole === 'p1' && s.turn === 'p1') || (myRole === 'p2' && s.turn === 'p2');
+    const turnName = s.turn === 'p1' ? (s.p1name || 'Player 1') : (s.p2name || 'Player 2');
+    const tnEl = document.getElementById('turn-name');
+    if (s.phase === 'waiting') {
+        tnEl.innerHTML = '<span class="waiting-pulse"></span> Waiting for opponent…';
+    } else if (s.phase === 'done') {
+        tnEl.textContent = 'Game over!';
+    } else if (isMyTurn) {
+        tnEl.textContent = '✋ Your turn!';
+    } else {
+        tnEl.innerHTML = `<span class="waiting-pulse"></span> ${turnName}'s turn…`;
+    }
+
+    // Rolls remaining — show for active player
+    const myRolls = myRole === 'p1' ? s.p1rolls : s.p2rolls;
+    document.getElementById('rollsRemaining').textContent = `Rolls Remaining: ${9 - myRolls}`;
+
+    // Dice & roll button
+    const rollBtn = document.getElementById('rollButton');
+    const pendingForMe = s.currentRoll !== null && s.rollOwner === myRole;
+    const canRoll = isMyTurn && s.phase === 'playing' && s.currentRoll === null;
+
+    if (pendingForMe) {
+        document.getElementById('dice').textContent = s.currentRoll;
+        document.getElementById('instruction').textContent = `You rolled a ${s.currentRoll}! Click a spot on YOUR board to place it.`;
+        rollBtn.disabled = true;
+    } else if (canRoll) {
+        document.getElementById('dice').textContent = '?';
+        document.getElementById('instruction').textContent = 'Click the button to roll!';
+        rollBtn.disabled = false;
+    } else if (s.phase === 'waiting') {
+        document.getElementById('instruction').textContent = 'Waiting for Player 2 to join…';
+        rollBtn.disabled = true;
+    } else {
+        document.getElementById('dice').textContent = s.currentRoll || '?';
+        const oppName = myRole === 'p1' ? (s.p2name || 'Player 2') : (s.p1name || 'Player 1');
+        document.getElementById('instruction').textContent = s.phase === 'done' ? 'Game over!' : `Waiting for ${oppName}…`;
+        rollBtn.disabled = true;
+    }
+
+    // Render both boards
+    renderBoard('p1', s.p1values, s);
+    renderBoard('p2', s.p2values, s);
+
+    // Totals
+    const t1 = calcTotal(s.p1values);
+    const t2 = calcTotal(s.p2values);
+    document.getElementById('total-p1').textContent = t1;
+    document.getElementById('total-p2').textContent = t2;
+    document.getElementById('chip-p1-number').textContent = t1;
+    document.getElementById('chip-p2-number').textContent = t2;
+
+    if (s.phase === 'done') showWinner(s);
+}
+
+function renderBoard(player, values, s) {
+    const pendingForMe = s.currentRoll !== null && s.rollOwner === myRole;
+    document.querySelectorAll(`#chart-${player} .place-value:not(.decimal-point)`).forEach(el => {
+        const place = el.getAttribute('data-place');
+        const val = values[place];
+        if (val !== null) {
+            el.textContent = val;
+            el.classList.remove('not-my-turn');
+            el.classList.add('filled-' + player);
+            el.onclick = null;
+            el.style.cursor = 'default';
+        } else {
+            el.textContent = '';
+            el.classList.remove('filled-p1', 'filled-p2', 'not-my-turn');
+            // Only allow clicking on own board when you have a pending roll
+            if (player === myRole && pendingForMe) {
+                el.onclick = () => placeDigit(place);
+                el.style.cursor = 'pointer';
+            } else {
+                el.onclick = null;
+                el.classList.add('not-my-turn');
+                el.style.cursor = 'not-allowed';
+            }
+        }
+    });
+}
+
+// ── Roll ──
+async function doRoll() {
+    if (!gameState || gameState.phase !== 'playing') return;
+    const isMyTurn = (myRole === 'p1' && gameState.turn === 'p1') || (myRole === 'p2' && gameState.turn === 'p2');
+    if (!isMyTurn || gameState.currentRoll !== null) return;
+
+    const diceEl = document.getElementById('dice');
+    document.getElementById('rollButton').disabled = true;
+    diceEl.classList.add('rolling');
+
+    setTimeout(async () => {
+        const rolled = Math.floor(Math.random() * 9) + 1;
+        diceEl.classList.remove('rolling');
+        await db.ref('dpv/' + currentRoom).update({ currentRoll: rolled, rollOwner: myRole });
+    }, 600);
+}
+
+// ── Place digit ──
+async function placeDigit(place) {
+    if (!gameState || gameState.currentRoll === null || gameState.rollOwner !== myRole) return;
+    const values = myRole === 'p1' ? {...gameState.p1values} : {...gameState.p2values};
+    if (values[place] !== null) return;
+
+    values[place] = gameState.currentRoll;
+    const myRolls = myRole === 'p1' ? gameState.p1rolls + 1 : gameState.p2rolls + 1;
+    const oppRolls = myRole === 'p1' ? gameState.p2rolls : gameState.p1rolls;
+
+    // Switch turn: after placing, other player goes (alternating)
+    const nextTurn = myRole === 'p1' ? 'p2' : 'p1';
+
+    // Check done: both players have used all 9 rolls
+    const p1rolls = myRole === 'p1' ? myRolls : gameState.p1rolls;
+    const p2rolls = myRole === 'p2' ? myRolls : gameState.p2rolls;
+    const done = p1rolls >= 9 && p2rolls >= 9;
+
+    const update = {
+        currentRoll: null,
+        rollOwner: null,
+        turn: done ? gameState.turn : nextTurn,
+        phase: done ? 'done' : 'playing'
+    };
+    if (myRole === 'p1') { update.p1values = values; update.p1rolls = myRolls; }
+    else { update.p2values = values; update.p2rolls = myRolls; }
+
+    await db.ref('dpv/' + currentRoom).update(update);
+}
+
+function calcTotal(values) {
+    if (!values) return '0.000';
+    let total = 0;
+    for (let i = 5; i >= 0; i--) {
+        if (values[i.toString()] !== null) total += values[i.toString()] * Math.pow(10, i);
+    }
+    if (values['-1'] !== null) total += values['-1'] * 0.1;
+    if (values['-2'] !== null) total += values['-2'] * 0.01;
+    if (values['-3'] !== null) total += values['-3'] * 0.001;
+    return total.toFixed(3);
+}
+
+function showWinner(s) {
+    const t1 = parseFloat(calcTotal(s.p1values));
+    const t2 = parseFloat(calcTotal(s.p2values));
+    const p1n = s.p1name || 'Player 1';
+    const p2n = s.p2name || 'Player 2';
+    let title, sub;
+    if (t1 > t2) { title = `${p1n} wins! 🎉`; sub = 'They built the biggest number!'; }
+    else if (t2 > t1) { title = `${p2n} wins! 🎉`; sub = 'They built the biggest number!'; }
+    else { title = "It's a tie! 🤝"; sub = 'Both players built equal numbers!'; }
+    document.getElementById('winner-title').textContent = title;
+    document.getElementById('winner-sub').textContent = sub;
+    document.getElementById('ws-p1-name').textContent = p1n;
+    document.getElementById('ws-p2-name').textContent = p2n;
+    document.getElementById('ws-p1-num').textContent = calcTotal(s.p1values);
+    document.getElementById('ws-p2-num').textContent = calcTotal(s.p2values);
+    document.getElementById('winner-overlay').classList.add('show');
+}
+
+function backToLobby() {
+    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    document.getElementById('winner-overlay').classList.remove('show');
+    document.getElementById('screen-game').style.display = 'none';
+    document.getElementById('screen-lobby').style.display = 'block';
+    gameState = null; myRole = null; currentRoom = '';
+}
+
+function leaveGame() { backToLobby(); }
+
+function copyCode() {
+    navigator.clipboard.writeText(currentRoom).then(() => {
+        showGameMsg('✅ Room code copied!');
+        setTimeout(() => showGameMsg(''), 2000);
+    });
+}
+
+document.getElementById('joinCode').addEventListener('keydown', e => { if(e.key==='Enter') joinGame(); });
+document.getElementById('playerName').addEventListener('keydown', e => { if(e.key==='Enter') createGame(); });
+</script>
+</body>
+</html>
